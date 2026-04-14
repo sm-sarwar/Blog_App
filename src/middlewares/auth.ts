@@ -1,4 +1,4 @@
-import express, { NextFunction, Request, Response } from "express"
+import { NextFunction, Request, Response } from "express"
 import { auth as betterAuth} from "../lib/auth"
 export enum UserRole {
     ADMIN = "ADMIN",
@@ -25,13 +25,14 @@ const auth = (...roles: UserRole[])=>{
             const session = await betterAuth.api.getSession({
             headers: req.headers as any
         })
+        // console.log("Cookies:", req.headers.cookie)
+        // console.log(session)
         if(!session) {
             return res.status(401).json({
                 success: false,
                 message: "unauthorized"
             })
         }
-
         if(!session.user.emailVerified) {
             return res.status(403).json({
                 success: false,
@@ -47,7 +48,7 @@ const auth = (...roles: UserRole[])=>{
             emailVerified: session.user.emailVerified
         }
         
-        if(roles.length && !roles.includes(req.user.role as UserRole)){
+        if(roles.length && !roles.includes(req.user.role.toUpperCase() as UserRole)){
             return res.status(403).json({
                 success: false,
                 message: "Forbidden. You don't have permission to access this resource."

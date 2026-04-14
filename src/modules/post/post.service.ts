@@ -1,10 +1,11 @@
 import { Post } from "../../../generated/prisma/client";
+import { PostWhereInput } from "../../../generated/prisma/models";
 import { prisma } from "../../lib/prisma";
 
 
 const postCreate = async (data: Omit<Post, "id" | "createdAt" | "updatedAt" | "authorId">, userId: string) => {
     const result = await prisma.post.create({
-        data : {
+        data: {
             ...data,
             authorId: userId
         }
@@ -12,8 +13,62 @@ const postCreate = async (data: Omit<Post, "id" | "createdAt" | "updatedAt" | "a
     return result;
 }
 
-const getALLPosts  = async ()=> {
-    const result = await prisma.post.findMany()
+
+
+
+const getALLPosts = async ({ search, tags, isFeatured }: { search?: string | undefined, tags: string[] | [], isFeatured?: boolean | undefined }) => {
+
+    const andConditions : PostWhereInput[] = []
+
+    if (search) {
+        andConditions.push(
+            {
+                    OR: [
+                        {
+                            title: {
+                                contains: search as string,
+                                mode: "insensitive"
+                            }
+                        },
+                        {
+                            content: {
+                                contains: search as string,
+                                mode: "insensitive"
+                            }
+                        },
+                        {
+                            tags: {
+                                has: search as string
+                            }
+                        }
+                    ]
+                }
+        )
+    }
+
+    if(tags.length > 0){
+        andConditions.push(
+            {
+                    tags: {
+                        hasEvery: tags
+                    }
+                }
+        )
+    }
+
+    if (typeof isFeatured === "boolean") {
+        andConditions.push(
+            {
+                isFeatured
+            }
+        )
+    }
+    const result = await prisma.post.findMany({
+        where: {
+            AND: andConditions
+
+        }
+    })
     return result;
 }
 
