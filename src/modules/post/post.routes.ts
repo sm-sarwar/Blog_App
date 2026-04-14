@@ -1,9 +1,11 @@
 import express from "express"
 import { postController } from "./post.controller";
+import auth, { UserRole } from "../../middlewares/auth";
 
 const router = express.Router()
 
-router.post ('/', postController.postCreate)
+
+router.post ('/', auth(UserRole.USER), postController.postCreate)
 router.get ('/', postController.getAllPosts)
 
 

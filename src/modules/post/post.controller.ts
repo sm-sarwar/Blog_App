@@ -3,7 +3,13 @@ import { postService } from "./post.service";
 
 const postCreate = async (req: Request, res: Response) => {
     try {
-        const result = await postService.postCreate(req.body)
+        const user = req.user
+        if (!user) {
+            return res.status(500).json({
+                error: "User information is missing in the request."
+            })
+        }
+        const result = await postService.postCreate(req.body, user.id as string)
         res.status(201).json(result);
     } catch (error) {
         res.status(500).json({
@@ -14,12 +20,12 @@ const postCreate = async (req: Request, res: Response) => {
 }
 
 
-const getAllPosts  = async (req : Request, res: Response) =>{
+const getAllPosts = async (req: Request, res: Response) => {
     try {
         const result = await postService.getALLPosts()
         res.status(200).json(result);
-    }catch (err) {
-        res.status (500).json({
+    } catch (err) {
+        res.status(500).json({
             error: err,
             message: "An error occurred while fetching posts."
         })
