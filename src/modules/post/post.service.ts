@@ -16,43 +16,46 @@ const postCreate = async (data: Omit<Post, "id" | "createdAt" | "updatedAt" | "a
 
 
 
-const getALLPosts = async ({ search, tags, isFeatured }: { search?: string | undefined, tags: string[] | [], isFeatured?: boolean | undefined }) => {
+const getALLPosts = async ({
+    search, tags, isFeatured, page, limit, skip, sortBy, sortOrder }:
 
-    const andConditions : PostWhereInput[] = []
+    { search?: string | undefined, tags: string[] | [], isFeatured?: boolean | undefined, page: number, limit: number, skip: number, sortBy: string , sortOrder :string }) => {
+
+    const andConditions: PostWhereInput[] = []
 
     if (search) {
         andConditions.push(
             {
-                    OR: [
-                        {
-                            title: {
-                                contains: search as string,
-                                mode: "insensitive"
-                            }
-                        },
-                        {
-                            content: {
-                                contains: search as string,
-                                mode: "insensitive"
-                            }
-                        },
-                        {
-                            tags: {
-                                has: search as string
-                            }
+                OR: [
+                    {
+                        title: {
+                            contains: search as string,
+                            mode: "insensitive"
                         }
-                    ]
-                }
+                    },
+                    {
+                        content: {
+                            contains: search as string,
+                            mode: "insensitive"
+                        }
+                    },
+                    {
+                        tags: {
+                            has: search as string
+                        }
+                    }
+                ]
+            }
         )
     }
 
-    if(tags.length > 0){
+    if (tags.length > 0) {
         andConditions.push(
             {
-                    tags: {
-                        hasEvery: tags
-                    }
+                tags: {
+                    hasEvery: tags
                 }
+            }
         )
     }
 
@@ -64,12 +67,31 @@ const getALLPosts = async ({ search, tags, isFeatured }: { search?: string | und
         )
     }
     const result = await prisma.post.findMany({
+        take: limit,
+        skip,
         where: {
             AND: andConditions
-
+        },
+        orderBy : {
+            [sortBy]: sortOrder
         }
     })
-    return result;
+
+
+    const totalCount = await prisma.post.count({
+        where: {
+            AND: andConditions
+        }
+    })
+    return {
+        data: result,
+        pagination: {
+            total: totalCount
+        },
+        page,
+        limit,
+        totalPages: Math.ceil(totalCount / limit)
+    };
 }
 
 export const postService = {
