@@ -99,8 +99,6 @@ const getALLPosts = async ({
     };
 }
 
-
-
 const getPostById = async (postId: string) => {
 
     return await prisma.$transaction(async (tx) => {
@@ -160,8 +158,95 @@ const getPostById = async (postId: string) => {
 
 }
 
+
+
+
+const getMyPosts = async(authorId: string) =>  {
+
+    await prisma.user.findUniqueOrThrow({
+        where : {
+            id : authorId,
+            status : "ACTIVE"
+        },
+        select : {
+            id : true
+        }
+    })
+
+    const result= await prisma.post.findMany({
+        where : {
+            authorId : authorId
+        },
+        orderBy : {
+            createdAt : "desc"
+        },
+        include : {
+            _count: {
+                select : {
+                    comments: true
+                }
+            }
+        }
+    })
+    const total = await prisma.post.aggregate({
+        _count : {
+            id : true
+        },
+        where : {
+            authorId 
+        }
+    })
+    return {
+        data : result,
+        total
+    }
+}
+
+
+const updatePost = async (postId : string, data : Partial<Post>,authorId: string, isAdmin : boolean) =>{
+    const postData = await prisma.post.findUniqueOrThrow({
+        where : {
+            id : postId
+        },
+        select : {
+            id: true,
+            authorId: true
+        }
+    })
+     
+    if(!isAdmin && (postData.authorId !== authorId)){
+        throw new Error ("You are not the owner/creator of this post")
+    }
+
+    if(!isAdmin) {
+        delete data.isFeatured
+    }
+
+    if(postData.authorId !== authorId){
+        throw new Error ("YOu are not the owner/creator of the post")
+    }
+
+    const result = await prisma.post.update ({
+        where : {
+            id : postData.id
+        },
+        data
+    })
+
+    return result;
+}
+
+
+const deletePost = async () =>{
+    console.log("Deleted the post")
+}
+
+
 export const postService = {
     postCreate,
     getALLPosts,
-    getPostById
+    getPostById,
+    getMyPosts,
+    updatePost,
+    deletePost
 }
